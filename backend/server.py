@@ -812,23 +812,155 @@ async def update_order_status(
 
 
 # ============ RAZORPAY ROUTES ============
+import razorpay
+from reportlab.lib.pagesizes import letter, A4
+from reportlab.lib import colors
+from reportlab.lib.units import inch
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from io import BytesIO
+from fastapi.responses import StreamingResponse
+
+# Initialize Razorpay client
+razorpay_client = razorpay.Client(
+    auth=(os.environ.get('RAZORPAY_KEY_ID'), os.environ.get('RAZORPAY_KEY_SECRET'))
+)
 
 @api_router.post("/payment/create-order")
 async def create_razorpay_order(
     data: RazorpayOrderRequest,
     current_user: User = Depends(get_current_user)
 ):
-    return {
-        "key_id": os.environ.get('RAZORPAY_KEY_ID'),
-        "amount": int(data.amount * 100),  # paise
-        "currency": "INR"
-    }
+    """Create Razorpay order"""
+    try:
+        # Create order in Razorpay
+        razorpay_order = razorpay_client.order.create({
+            "amount": int(data.amount * 100),  # amount in paise
+            "currency": "INR",
+            "payment_capture": 1
+        })
+        
+        return {
+            "key_id": os.environ.get('RAZORPAY_KEY_ID'),
+            "amount": razorpay_order['amount'],
+            "currency": razorpay_order['currency'],
+            "order_id": razorpay_order['id']
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to create order: {str(e)}")
 
 
 @api_router.post("/payment/verify")
 async def verify_payment(payment_data: dict, current_user: User = Depends(get_current_user)):
-    # In production, verify signature here
-    return {"status": "success"}
+    """Verify Razorpay payment signature"""
+    try:
+        # Verify signature
+        razorpay_client.utility.verify_payment_signature({
+            'razorpay_order_id': payment_data.get('razorpay_order_id'),
+            'razorpay_payment_id': payment_data.get('razorpay_payment_id'),
+            'razorpay_signature': payment_data.get('razorpay_signature')
+        })
+        
+        return {"status": "success", "message": "Payment verified successfully"}
+    except razorpay.errors.SignatureVerificationError:
+        raise HTTPException(status_code=400, detail="Payment verification failed")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Verification error: {str(e)}")
+
+
+@api_router.get("/orders/{order_id}/invoice")
+async def generate_invoice(order_id: str, current_user: User = Depends(get_current_user)):
+    """Generate PDF invoice for order"""
+    # Get order details
+    async with db_pool.acquire() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cursor:
+            await cursor.execute(
+                "SELECT * FROM orders WHERE id = %s AND user_id = %s",
+                (order_id, current_user.id)
+            )
+            order = await cursor.fetchone()
+    
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    order = normalize_order(order)
+    
+    # Create PDF in memory
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4)
+    elements = []
+    styles = getSampleStyleSheet()
+    
+    # Title
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=24,
+        textColor=colors.HexColor('#1a56db'),
+        spaceAfter=30
+    )
+    elements.append(Paragraph("RrideGarage", title_style))
+    elements.append(Paragraph("INVOICE", styles['Heading2']))
+    elements.append(Spacer(1, 0.3*inch))
+    
+    # Order details
+    elements.append(Paragraph(f"<b>Order ID:</b> {order['id']}", styles['Normal']))
+    elements.append(Paragraph(f"<b>Order Date:</b> {order['created_at']}", styles['Normal']))
+    elements.append(Paragraph(f"<b>Status:</b> {order['order_status'].upper()}", styles['Normal']))
+    elements.append(Spacer(1, 0.3*inch))
+    
+    # Customer details
+    shipping = order.get('shipping_address', {})
+    elements.append(Paragraph("<b>Shipping Address:</b>", styles['Heading3']))
+    elements.append(Paragraph(f"{shipping.get('name', '')}", styles['Normal']))
+    elements.append(Paragraph(f"{shipping.get('address', '')}", styles['Normal']))
+    elements.append(Paragraph(f"{shipping.get('city', '')}, {shipping.get('state', '')} - {shipping.get('pincode', '')}", styles['Normal']))
+    elements.append(Paragraph(f"Phone: {shipping.get('phone', '')}", styles['Normal']))
+    elements.append(Spacer(1, 0.5*inch))
+    
+    # Items table
+    data = [['Item', 'Quantity', 'Price', 'Total']]
+    for item in order.get('items', []):
+        data.append([
+            item.get('product_name', 'Product'),
+            str(item.get('quantity', 1)),
+            f"₹{item.get('price', 0):.2f}",
+            f"₹{item.get('price', 0) * item.get('quantity', 1):.2f}"
+        ])
+    
+    # Add total
+    data.append(['', '', 'Total Amount:', f"₹{order['total_amount']:.2f}"])
+    
+    table = Table(data, colWidths=[3*inch, 1*inch, 1.5*inch, 1.5*inch])
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1a56db')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('ALIGN', (1, 0), (-1, -1), 'RIGHT'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 12),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('BACKGROUND', (0, 1), (-1, -2), colors.beige),
+        ('BACKGROUND', (0, -1), (-1, -1), colors.lightgrey),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+    ]))
+    elements.append(table)
+    elements.append(Spacer(1, 0.5*inch))
+    
+    # Payment details
+    elements.append(Paragraph(f"<b>Payment Method:</b> {order.get('payment_method', 'N/A').upper()}", styles['Normal']))
+    elements.append(Paragraph(f"<b>Payment Status:</b> {order.get('payment_status', 'pending').upper()}", styles['Normal']))
+    
+    # Build PDF
+    doc.build(elements)
+    buffer.seek(0)
+    
+    return StreamingResponse(
+        buffer,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename=invoice_{order_id}.pdf"}
+    )
 
 # ============ SEED DATA ============
 
