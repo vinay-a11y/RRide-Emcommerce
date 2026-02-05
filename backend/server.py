@@ -288,9 +288,11 @@ def normalize_product(product: dict) -> dict:
 @api_router.get("/products")
 async def get_products(
     category: Optional[str] = None,
-    brand: Optional[str] = None,
-
-    # 🔥 BIKE FILTERS
+    brand_id: Optional[str] = None,
+    product_type: Optional[str] = None,  # 'spare' or 'accessory'
+    product_name: Optional[str] = None,  # for filtering by specific product names like "Clutch Plate"
+    
+    # 🔥 BIKE FILTERS (for spares only)
     bike_brand: Optional[str] = None,
     bike_model: Optional[str] = None,
     bike_variant: Optional[str] = None,
@@ -299,19 +301,31 @@ async def get_products(
     max_price: Optional[float] = None,
     sort_by: Optional[str] = None,
     best_sellers: Optional[bool] = None,
-    new_arrivals: Optional[bool] = None
+    new_arrivals: Optional[bool] = None,
+    
+    # 🔥 PAGINATION
+    page: int = 1,
+    limit: int = 20
 ):
     query_parts = []
     params = []
 
     # ---------- BASIC FILTERS ----------
     if category:
-        query_parts.append("category = %s")
+        query_parts.append("spare_category_id = %s")
         params.append(category)
-
-    if brand:
-        query_parts.append("brand = %s")
-        params.append(brand)
+    
+    if brand_id:
+        query_parts.append("brand_id = %s")
+        params.append(brand_id)
+    
+    if product_type:
+        query_parts.append("product_type = %s")
+        params.append(product_type)
+    
+    if product_name:
+        query_parts.append("name LIKE %s")
+        params.append(f"%{product_name}%")
 
     if best_sellers:
         query_parts.append("is_best_seller = 1")
@@ -327,6 +341,23 @@ async def get_products(
         query_parts.append("price <= %s")
         params.append(max_price)
 
+    # ---------- BIKE COMPATIBILITY FILTER ----------
+    if bike_brand and bike_model and bike_variant:
+        # For spares: filter by bike compatibility
+        # For accessories: show all (they're universal)
+        query_parts.append(
+            """(
+                product_type = 'accessory' 
+                OR id IN (
+                    SELECT DISTINCT pbc.product_id 
+                    FROM product_bike_compatibility pbc
+                    JOIN bikes b ON pbc.bike_id = b.id
+                    WHERE b.brand = %s AND b.model = %s AND b.variant = %s
+                )
+            )"""
+        )
+        params.extend([bike_brand, bike_model, bike_variant])
+
     where_clause = " AND ".join(query_parts) if query_parts else "1=1"
 
     # ---------- SORT ----------
@@ -337,8 +368,23 @@ async def get_products(
         order_by = "price DESC"
     elif sort_by == "popularity":
         order_by = "reviews_count DESC"
+    elif sort_by == "rating":
+        order_by = "rating DESC"
 
-    # ---------- FETCH ----------
+    # ---------- PAGINATION ----------
+    offset = (page - 1) * limit
+
+    # ---------- FETCH TOTAL COUNT ----------
+    async with db_pool.acquire() as conn:
+        async with conn.cursor() as cursor:
+            await cursor.execute(
+                f"SELECT COUNT(*) as total FROM products WHERE {where_clause}",
+                params
+            )
+            result = await cursor.fetchone()
+            total_count = result[0] if result else 0
+
+    # ---------- FETCH PRODUCTS ----------
     async with db_pool.acquire() as conn:
         async with conn.cursor(aiomysql.DictCursor) as cursor:
             await cursor.execute(
@@ -346,37 +392,22 @@ async def get_products(
                 SELECT * FROM products
                 WHERE {where_clause}
                 ORDER BY {order_by}
-                LIMIT 100
+                LIMIT %s OFFSET %s
                 """,
-                params
+                params + [limit, offset]
             )
             products = await cursor.fetchall()
 
-    # ---------- NORMALIZE + BIKE FILTER ----------
-    filtered_products = []
+    # ---------- NORMALIZE ----------
+    normalized_products = [normalize_product(p) for p in products]
 
-    for product in products:
-        product = normalize_product(product)
-
-        # 🔥 BIKE COMPATIBILITY FILTER
-        if bike_brand and bike_model and bike_variant:
-            compatible = False
-
-            for c in product["compatibility"]:
-                if (
-                    c.get("brand") == bike_brand and
-                    c.get("model") == bike_model and
-                    c.get("variant") == bike_variant
-                ):
-                    compatible = True
-                    break
-
-            if not compatible:
-                continue  # ❌ skip product
-
-        filtered_products.append(product)
-
-    return filtered_products
+    return {
+        "products": normalized_products,
+        "total": total_count,
+        "page": page,
+        "limit": limit,
+        "total_pages": (total_count + limit - 1) // limit
+    }
 
 @api_router.get("/products/{product_id}")
 async def get_product(product_id: str):
