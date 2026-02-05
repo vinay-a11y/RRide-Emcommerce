@@ -1,0 +1,142 @@
+{
+  "identity": {
+    "name": "RRIDE GARAGE",
+    "persona": "E1: The Anti-AI Designer",
+    "tone": "Aggressive, Premium, Mechanical, Futuristic",
+    "theme_mode": "dark"
+  },
+  "typography": {
+    "headings": {
+      "font_family": "Teko, sans-serif",
+      "weights": [400, 500, 600, 700],
+      "usage": "All section titles, hero text, product names. Use uppercase often for impact."
+    },
+    "body": {
+      "font_family": "Rajdhani, sans-serif",
+      "weights": [300, 400, 500, 600, 700],
+      "usage": "Descriptions, prices, specifications, navigation."
+    },
+    "cdn_import": "https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&family=Teko:wght@300;400;500;600;700&display=swap"
+  },
+  "colors": {
+    "palette": {
+      "primary": "#FF8C42",
+      "primary_foreground": "#000000",
+      "background": "#050505",
+      "foreground": "#FAFAFA",
+      "card": "#09090B",
+      "card_foreground": "#FAFAFA",
+      "popover": "#09090B",
+      "popover_foreground": "#FAFAFA",
+      "secondary": "#27272A",
+      "secondary_foreground": "#FAFAFA",
+      "muted": "#27272A",
+      "muted_foreground": "#A1A1AA",
+      "accent": "#FF8C42",
+      "accent_foreground": "#000000",
+      "destructive": "#EF4444",
+      "destructive_foreground": "#FAFAFA",
+      "border": "#27272A",
+      "input": "#27272A",
+      "ring": "#FF8C42"
+    },
+    "gradients": {
+      "hero_overlay": "linear-gradient(to top, #050505 0%, transparent 100%)",
+      "card_hover": "linear-gradient(45deg, transparent 0%, rgba(255, 140, 66, 0.1) 100%)",
+      "gold_accent": "linear-gradient(to right, #BF953F, #FCF6BA, #B38728, #FBF5B7, #AA771C)"
+    }
+  },
+  "layout_strategies": {
+    "container": "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8",
+    "spacing": {
+      "section_gap": "py-24",
+      "element_gap": "gap-6"
+    },
+    "grid_system": {
+      "bento_grid": "grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4",
+      "product_grid": "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
+    },
+    "border_radius": {
+      "default": "rounded-none",
+      "buttons": "rounded-sm",
+      "cards": "rounded-lg"
+    }
+  },
+  "components": {
+    "buttons": {
+      "primary": "bg-primary text-black font-bold uppercase tracking-wider hover:bg-orange-400 transition-all duration-300 skew-x-[-10deg]",
+      "secondary": "border border-zinc-700 text-white hover:border-primary hover:text-primary transition-all duration-300 uppercase tracking-wider skew-x-[-10deg]",
+      "ghost": "text-zinc-400 hover:text-white transition-colors"
+    },
+    "cards": {
+      "product": "bg-card border border-border hover:border-primary/50 transition-all duration-300 group relative overflow-hidden",
+      "category": "relative h-64 overflow-hidden group cursor-pointer border border-transparent hover:border-primary/30 transition-all"
+    },
+    "inputs": {
+      "default": "bg-zinc-900/50 border-zinc-800 focus:border-primary focus:ring-1 focus:ring-primary text-white placeholder:text-zinc-600"
+    },
+    "navigation": {
+      "wrapper": "fixed top-0 w-full z-50 backdrop-blur-xl bg-black/80 border-b border-white/5",
+      "link": "text-sm font-medium text-zinc-400 hover:text-primary transition-colors uppercase tracking-widest"
+    }
+  },
+  "visual_enhancers": {
+    "glassmorphism": "backdrop-blur-xl bg-black/40 border border-white/10",
+    "neon_glow": "shadow-[0_0_20px_rgba(255,140,66,0.3)]",
+    "tracing_beam": "Use framer-motion to animate borders on hover",
+    "texture": "Use a subtle noise texture overlay on the background if possible (opacity 0.03)"
+  },
+  "image_urls": {
+    "hero": {
+      "main": "https://images.unsplash.com/photo-1553940085-7c4bd7911c90?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "alt": "Futuristic motorcycle garage with neon lights"
+    },
+    "brands": {
+      "ktm": "https://images.unsplash.com/photo-1629501195688-f3b0254b333e?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "bmw": "https://images.unsplash.com/photo-1734772001763-d01925bd5734?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "royal_enfield": "https://images.unsplash.com/photo-1736316407805-8dd5e2229860?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "yamaha": "https://images.unsplash.com/photo-1578047798395-2cbf6263c467?crop=entropy&cs=srgb&fm=jpg&q=85"
+    },
+    "categories": {
+      "performance": "https://images.unsplash.com/photo-1761583780521-7723c3569361?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "safety_gear": "https://images.unsplash.com/photo-1611004061856-ccc3cbe944b2?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "spares": "https://images.unsplash.com/photo-1633281256183-c0f106f70d76?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "accessories": "https://images.unsplash.com/photo-1649027421785-6827863f0891?crop=entropy&cs=srgb&fm=jpg&q=85"
+    },
+    "placeholders": {
+      "product": "https://images.unsplash.com/photo-1620937843955-a177ceba979e?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "avatar": "https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=400&h=400&c=1"
+    }
+  },
+  "instructions_to_main_agent": [
+    "1. SETUP: Install 'framer-motion', 'lucide-react', 'clsx', 'tailwind-merge' immediately.",
+    "2. THEME: Force dark mode in tailwind.config.js. Do not allow light mode toggling - this is a dark-only premium experience.",
+    "3. FONTS: Add the Google Fonts link to the index.html head immediately.",
+    "4. LAYOUT: The 'Bike Compatibility' selector is the heart of the app. Make it prominent in the Hero section.",
+    "5. COMPONENTS: Use Shadcn for complex logic (Select, Dialog, Toast) but STRIP their default styles to match the 'Garage' aesthetic (remove rounded corners, add borders).",
+    "6. IMAGES: Use the provided URLs. Do not use placeholders.",
+    "7. ANIMATION: Every hover must have a reaction. Use 'scale-105' or border color changes.",
+    "8. CRITICAL: Ensure the 'Shop by Brand' section uses circular images with the brand bike photos provided."
+  ],
+  "UNIVERSAL_GUIDELINES_FOR_MAIN_AGENT": [
+    "You tend to converge toward generic, 'on distribution' outputs. In frontend design, this creates what users call the 'AI slop' aesthetic. Avoid this: make creative, distinctive frontends that surprise and delight.",
+    "Dark colors look good when used independently without gradients. DO NOT use dark colors as gradients",
+    "Don't make generic centered layouts, simplistic gradients, and uniform styling.",
+    "Create depth through layered design elements with z-index hierarchy",
+    "Use glass-morphism effects with backdrop filters (12-24px blur)",
+    "You MUST NOT apply universal transition. Eg: 'transition: all'. This results in breaking transforms. Always add transitions for specific interactive elements like button, input excluding transforms",
+    "You MUST NOT center align the app container, ie do not add '.App { text-align: center; }' in the css file. This disrupts the human natural reading flow of text",
+    "Always use modern button styles like pill-shaped, or sharp button with interaction animations & color relevant to the app style",
+    "NEVER: use AI assistant Emoji characters like 🤖🧠💭💡🔮🎯📚🎭🎬🎪🎉🎊🎁🎀🎂🍰🎈🎨🎰💰💵💳🏦💎🪙💸🤑📊📈📉💹🔢🏆🥇 etc for icons.",
+    "Every interaction needs micro-animations - hover states, transitions, parallax effects, and entrance animations. Static = dead.",
+    "Use 2-3x more spacing than feels comfortable. Cramped designs look cheap.",
+    "Subtle grain textures, noise overlays, custom cursors, selection states, and loading animations: separates good from extraordinary.",
+    "Main agent relies on these image URLs. Missing categories (especially sponsor logos) = main agent will use placeholder text which is FORBIDDEN",
+    "Prioritize using pre-existing components from src/components/ui when applicable",
+    "Create new components that match the style and conventions of existing components when needed",
+    "Examine existing components to understand the project's component patterns before creating new ones",
+    "Components MUST use named exports (export const ComponentName = ...)",
+    "Pages MUST use default exports (export default function PageName() {...})",
+    "Use 'sonner' for toasts. Sonner component are located in '/app/src/components/ui/sonner.tsx'"
+  ]
+}
