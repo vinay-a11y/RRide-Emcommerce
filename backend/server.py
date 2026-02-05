@@ -422,8 +422,69 @@ async def get_product(product_id: str):
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
 
+    # Get compatible bikes for this product
+    async with db_pool.acquire() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cursor:
+            await cursor.execute(
+                """
+                SELECT b.* FROM bikes b
+                JOIN product_bike_compatibility pbc ON b.id = pbc.bike_id
+                WHERE pbc.product_id = %s
+                """,
+                (product_id,)
+            )
+            compatible_bikes = await cursor.fetchall()
+
     # ✅ NORMALIZE PRODUCT
-    return normalize_product(product)
+    normalized = normalize_product(product)
+    normalized['compatible_bikes'] = compatible_bikes
+    return normalized
+
+
+# ============ NEW: GET PRODUCT SUBCATEGORIES (for filter chips) ============
+@api_router.get("/products/subcategories/list")
+async def get_product_subcategories(product_type: str):
+    """
+    Get unique product names grouped by type for filter chips
+    e.g., Spares: Clutch Plate, Handle Bar, Chain Kit
+          Accessories: Mobile Holder, Helmet, Gloves
+    """
+    async with db_pool.acquire() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cursor:
+            await cursor.execute(
+                """
+                SELECT DISTINCT 
+                    TRIM(SUBSTRING_INDEX(name, ' ', 2)) as subcategory,
+                    COUNT(*) as count
+                FROM products
+                WHERE product_type = %s
+                GROUP BY subcategory
+                ORDER BY count DESC
+                """,
+                (product_type,)
+            )
+            subcategories = await cursor.fetchall()
+    
+    return subcategories
+
+
+# ============ BRANDS ============
+@api_router.get("/brands")
+async def get_brands():
+    """Get all product brands"""
+    async with db_pool.acquire() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cursor:
+            await cursor.execute(
+                """
+                SELECT pb.*, COUNT(p.id) as product_count
+                FROM product_brands pb
+                LEFT JOIN products p ON pb.id = p.brand_id
+                GROUP BY pb.id
+                ORDER BY pb.name
+                """
+            )
+            brands = await cursor.fetchall()
+    return brands
 
 
 @api_router.get("/categories")
