@@ -570,23 +570,27 @@ async def search_products(
         async with conn.cursor(aiomysql.DictCursor) as cursor:
             await cursor.execute(
                 """
-                SELECT *
-                FROM products
+                SELECT DISTINCT p.* 
+                FROM products p
+                LEFT JOIN product_brands pb ON p.brand_id = pb.id
+                LEFT JOIN spare_categories sc ON p.spare_category_id = sc.id
                 WHERE
-                    name LIKE %s
-                    OR brand LIKE %s
-                    OR category LIKE %s
+                    p.name LIKE %s
+                    OR pb.name LIKE %s
+                    OR sc.name LIKE %s
+                    OR p.description LIKE %s
                 ORDER BY
                     CASE
-                        WHEN name LIKE %s THEN 1
-                        WHEN brand LIKE %s THEN 2
-                        WHEN category LIKE %s THEN 3
+                        WHEN p.name LIKE %s THEN 1
+                        WHEN pb.name LIKE %s THEN 2
+                        WHEN sc.name LIKE %s THEN 3
                         ELSE 4
                     END,
-                    rating DESC
+                    p.rating DESC
                 LIMIT %s
                 """,
                 (
+                    search_term,
                     search_term,
                     search_term,
                     search_term,
