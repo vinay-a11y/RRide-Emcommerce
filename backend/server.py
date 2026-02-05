@@ -773,6 +773,44 @@ async def get_order(order_id: str, current_user: User = Depends(get_current_user
     return normalize_order(order)
 
 
+@api_router.patch("/orders/{order_id}/status")
+async def update_order_status(
+    order_id: str,
+    status_data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Update order status
+    Valid statuses: placed, confirmed, processing, pickup, delivery, delivered, cancelled
+    """
+    new_status = status_data.get('status')
+    
+    valid_statuses = ['placed', 'confirmed', 'processing', 'pickup', 'delivery', 'delivered', 'cancelled']
+    if new_status not in valid_statuses:
+        raise HTTPException(status_code=400, detail=f"Invalid status. Must be one of: {', '.join(valid_statuses)}")
+    
+    async with db_pool.acquire() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cursor:
+            # Verify order belongs to user
+            await cursor.execute(
+                "SELECT * FROM orders WHERE id = %s AND user_id = %s",
+                (order_id, current_user.id)
+            )
+            order = await cursor.fetchone()
+            
+            if not order:
+                raise HTTPException(status_code=404, detail="Order not found")
+            
+            # Update status
+            await cursor.execute(
+                "UPDATE orders SET order_status = %s, updated_at = %s WHERE id = %s",
+                (new_status, datetime.now(timezone.utc), order_id)
+            )
+            await conn.commit()
+    
+    return {"message": "Order status updated", "status": new_status}
+
+
 # ============ RAZORPAY ROUTES ============
 
 @api_router.post("/payment/create-order")
